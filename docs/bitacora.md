@@ -3,6 +3,37 @@
 Resumen corto de cada pasada de trabajo sobre `notebooks/vqe_h4.ipynb`, para que cualquiera (persona
 o agente) pueda retomar sin tener que releer todo el historial de git. Entradas más nuevas arriba.
 
+## 2026-11-21 — Primera corrida completa de punta a punta (11 puntos) + fix de un bug en el filtro
+
+**Qué se hizo:** corrimos el notebook completo (las 11 distancias, con la optimización de velocidad
+de la entrada de abajo) fuera de Colab, con el `.venv` del repo. Tardó ~40 min en total (el loop de
+optimización; el resto de las celdas es instantáneo).
+
+**Resultados reales:**
+
+- **Le gana a CCSD en 6/6 puntos de la zona estirada** (d=1,80 a 3,00 Å). El margen es chico en
+  1,80 Å (5,44 mHa de FCI contra 9,11 mHa de CCSD) y se abre mucho el resto (hasta ~31 mHa de CCSD
+  en d=2,52 Å, con VQE siempre entre 2 y 7,5 mHa de FCI).
+- **R_e:** VQE 0,9793 Å vs FCI 0,9811 Å (diferencia 1,8 mÅ). **D_e:** VQE 285,22 mHa vs FCI
+  288,48 mHa (diferencia 3,26 mHa).
+- **Precisión química (<1,6 mHa) no se alcanza en ningún punto** de la zona estirada — queda como
+  meta máxima no lograda, no es un requisito obligatorio de la consigna.
+- Chequeo de varianza de energía (sin ruido, re-optimizando desde cero sin warm start): en d=1,80 Å
+  la varianza da ~45 mHa de desviación (bastante alta, consistente con ser la zona más difícil); en
+  d=3,00 Å baja a ~7,6 mHa.
+
+**Bug encontrado y arreglado:** la celda de resumen filtraba `zona_estirada = df[df.d >= 1.8]`, pero
+`np.linspace(0.6, 3.0, 11)` guarda el punto de 1,8 Å como `1.7999999999999998` por redondeo de punto
+flotante — así que `>= 1.8` a secas lo descartaba, y el notebook reportaba "le gana a CCSD en 5/5"
+cuando en realidad son 6/6 (el punto 1,80 Å también gana, solo que no se contaba). El resultado real
+no cambiaba, solo el texto que lo resumía. Arreglado con tolerancia: `df.d >= 1.8 - 1e-9`.
+
+**Nota para quien siga:** el script generador `build_notebook.py` que vive en el scratchpad de la
+sesión que escribió la optimización de velocidad quedó **desactualizado** respecto al notebook real
+(genera 13 celdas de código, el notebook commiteado tiene 14) — no regenerar el notebook desde ahí
+sin revisar antes, se perdería la semilla de CCSD y el resto de la optimización. Los cambios de esta
+entrada se aplicaron editando `notebooks/vqe_h4.ipynb` directamente.
+
 ## 2026-11-21 — Velocidad del loop de VQE + evaluación de `qiskit-fermions`
 
 **Qué se hizo:**
