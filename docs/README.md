@@ -3,6 +3,9 @@
 Consigna de la hackathon (`consigna.md`) y teoría de los workshops de la Quantum Jam 2026
 (extraída de las notebooks de `quantumjam-workshops`, solo las explicaciones, sin el código).
 
+[`bitacora.md`](bitacora.md): resumen corto de cada pasada de trabajo sobre el notebook de VQE, para
+retomar sin releer todo el historial de git.
+
 ## Teoría
 
 | Archivo | Tema |
