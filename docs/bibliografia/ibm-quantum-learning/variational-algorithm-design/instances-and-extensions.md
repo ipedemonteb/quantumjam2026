@@ -1,0 +1,311 @@
+# Instances and extensions
+
+> Fuente: <https://quantum.cloud.ibm.com/learning/en/courses/variational-algorithm-design/instances-and-extensions>
+
+> Solo las celdas de texto del notebook original; sin código.
+
+
+This chapter will cover several quantum variational algorithms, including
+
+* [Variational Quantum Eigensolver (VQE)](https://arxiv.org/abs/1304.3061)
+* [Subspace Search VQE (SSVQE)](https://arxiv.org/abs/1810.09434)
+* [Variational Quantum Deflation (VQD)](https://arxiv.org/abs/1805.08138)
+* [Quantum Sampling Regression (QSR)](https://arxiv.org/pdf/2012.02338)
+
+By using these algorithms, we will learn about several design ideas that can be incorporated into custom variational algorithms, such as weights, penalties, over-sampling, and under-sampling. We encourage you to experiment with these concepts and share your findings with the community.
+
+The Qiskit patterns framework applies to all these algorithms - but we will explicitly call out the steps only in the first example.
+
+## Variational Quantum Eigensolver (VQE)
+
+[VQE](https://arxiv.org/abs/1304.3061) is one of the most widely used variational quantum algorithms, setting up a template for other algorithms to build upon.
+
+### Step 1: Map classical inputs to a quantum problem
+### Theoretical layout
+
+VQE's layout is simple:
+
+- Prepare reference operators $U_R$
+  - We start from the state $|0\rangle$ and go to the reference state $|\rho\rangle$
+- Apply the variational form $U_V(\vec\theta_{i,j})$ to create an ansatz $U_A(\vec\theta_{i,j})$
+  - We go from the state $|\rho\rangle$ to $U_V(\vec\theta_{i,j})|\rho\rangle = |\psi(\vec\theta_{i,j})\rangle$
+- Bootstrap at $i=0$ if we have a similar problem (typically found via classical simulation or sampling)
+  - Each optimizer will be bootstrapped differently, resulting in an initial set of parameter vectors $\Theta_0 := \\{ {\vec\theta_{0,j} | j \in \mathcal{J}_\text{opt}^0} \\}$ (for example, from an initial point $\vec\theta_0$).
+- Evaluate the cost function $C(\vec\theta_{i,j}) := \langle \psi(\vec{\theta}) | \hat{H} | \psi(\vec{\theta})\rangle$ for all prepared states on a quantum computer.
+- Use a classical optimizer to select the next set of parameters $\Theta_{i+1}$.
+- Repeat the process until convergence is reached.
+
+This is a simple classical optimization loop where we evaluate the cost function. Some optimizers may require multiple evaluations to calculate a gradient, determine the next iteration, or assess convergence.
+
+Here's the example for the following observable:
+
+$$
+\hat{O}_1 = 2 II - 2 XX + 3 YY - 3 ZZ,
+$$
+
+### Implementation
+
+We can use this cost function to calculate optimal parameters
+
+### Step 2: Optimize problem for quantum execution
+
+We will select the least-busy backend, and import the necessary components from `qiskit_ibm_runtime`.
+
+We will transpile the circuit using the preset pass manager with optimization level 3, and we will apply the corresponding layout to the observable.
+
+### Step 3: Execute using IBM Quantum primitives
+
+We are now ready to run our calculation on IBM Quantum&reg; hardware. Because the cost function minimization is highly iterative, we will start a Runtime session. This way, we will only have to wait in a queue once. Once the job begins running, each iteration with updates to parameters will run immediately.
+
+### Step 4: Post-process, return result in classical format
+
+We can see that the minimization routine successfully terminated, meaning we reached the default tolerance of the COBYLA classical optimizer. If we require a more precise result, we can specify a smaller tolerance. This may indeed be the case, since the result was several percent off compared to the result obtained by the simulator above.
+
+The value of x obtained is the current best guess for the parameters that minimize the cost function. If iterating to obtain a higher precision, those values should be used in place of the x0 initially used (a vector of ones).
+
+Finally, we note that the function was evaluated 96 times in the process of optimization. That might be different from the number of optimization steps, since some optimizers require multiple function evaluations in a single step, such as when estimating a gradient.
+
+## Subspace Search VQE (SSVQE)
+
+[SSVQE](https://arxiv.org/abs/1810.09434) is a variant of VQE that allows obtaining the first $k$ eigenvalues of an observable $\hat{H}$ with eigenvalues $\{\lambda_0, \lambda_1,...,\lambda_{N-1}\}$, where $N\geq k$. Without loss of generality, we assume that $\lambda_0<\lambda_1<...<\lambda_{N-1}$. SSVQE introduces a new idea by adding weights to help prioritize optimizing for the term with the largest weight.
+
+To implement this algorithm, we need $k$ mutually orthogonal reference states $\{ |\rho_j\rangle \}_{j=0}^{k-1}$, meaning $\langle \rho_j | \rho_l \rangle = \delta_{jl}$ for $j,l<k$. These states can be constructed using Pauli operators. The cost function of this algorithm is then:
+
+$$
+\begin{aligned}
+C(\vec{\theta})
+
+& := \sum_{j=0}^{k-1} w_j \langle \rho_j | U_{V}^{\dagger}(\vec{\theta})\hat{H} U_{V}(\vec{\theta})|\rho_j \rangle \\[1mm]
+
+& := \sum_{j=0}^{k-1} w_j \langle \psi_{j}(\vec{\theta}) | \hat{H} | \psi_{j}(\vec{\theta}) \rangle \\[1mm]
+
+\end{aligned}
+$$
+
+where $w_j$ is an arbitrary positive number such that if $j<l<k$ then $w_j>w_l$, and $U_V(\vec{\theta})$ is the user-defined variational form.
+
+The SSVQE algorithm relies on the fact that eigenstates corresponding to different eigenvalues are mutually orthogonal. Specifically, the inner product of $U_V(\vec{\theta})|\rho_j\rangle$ and $U_V(\vec{\theta})|\rho_l\rangle$ can be expressed as:
+
+$$
+\begin{aligned}
+\langle \rho_j | U_{V}^{\dagger}(\vec{\theta})U_{V}(\vec{\theta})|\rho_l \rangle
+
+& = \langle \rho_j | I |\rho_l \rangle \\[1mm]
+
+& = \langle \rho_j | \rho_l \rangle \\[1mm]
+
+& = \delta_{jl}
+
+\end{aligned}
+$$
+
+The first equality holds because $U_{V}(\vec{\theta})$ is a quantum operator and is therefore unitary. The last equality holds because of the orthogonality of the reference states $|\rho_j\rangle$. The fact that orthogonality is preserved through unitary transformations is deeply related to the principle of conservation of information, as expressed in quantum information science. Under this view, non-unitary transformations represent processes where information is either lost or injected.
+
+Weights $w_j$ help ensure that all the states are eigenstates. If the weights are sufficiently different, the term with the largest weight (that is, $w_0$) will be given priority during optimization over the others. As a result, the resulting state $U_{V}(\vec{\theta})|\rho_0 \rangle$ will become the eigenstate corresponding to $\lambda_0$. Because $\{ U_{V}(\vec{\theta})|\rho_j\rangle \}_{j=0}^{k-1}$ are mutually orthogonal, the remaining states will be orthogonal to it and, therefore, contained in the subspace corresponding to the eigenvalues $\{\lambda_1,...,\lambda_{N-1}\}$.
+
+Applying the same argument to the rest of the terms, the next priority would then be the term with weight $w_1$, so $U_{V}(\vec{\theta})|\rho_1 \rangle$ would be the eigenstate corresponding to $\lambda_1$, and the other terms would be contained in the eigenspace of $\{\lambda_2,...,\lambda_{N-1}\}$.
+
+By reasoning inductively, we deduce that $U_{V}(\vec{\theta})|\rho_j \rangle$ will be an approximate eigenstate of $\lambda_j$ for $0\leq j < k$.
+
+### Theoretical layout
+
+SSVQE's can be summarized as follows:
+
+- Prepare several reference states by applying a unitary U_R to k different computational basis states
+   - This algorithm requires the usage of $k$ mutually orthogonal reference states $\{ |\rho_j\rangle \}_{j=0}^{k-1}$, such that $\langle \rho_j | \rho_l \rangle = \delta_{jl}$ for $j,l<k$.
+- Apply the variational form $U_V(\vec\theta_{i,j})$ to each reference state, resulting in the following ansatz $U_A(\vec\theta_{i,j})$.
+- Bootstrap at $i=0$ if a similar problem is available (usually found via classical simulation or sampling).
+- Evaluate the cost function $C(\vec\theta_{i,j}) := \sum_{j=0}^{k-1} w_j \langle \psi_{j}(\vec{\theta}) | \hat{H} | \psi_{j}(\vec{\theta}) \rangle$ for all prepared states on a quantum computer.
+  - This can be separated into calculating the expectation value for an observable $\langle \psi_{j}(\vec{\theta}) | \hat{H} | \psi_{j}(\vec{\theta}) \rangle$ and multiplying that result by $w_j$.
+  - Afterward, the cost function returns the sum of all weighted expectation values.
+- Use a classical optimizer to determine the next set of parameters $\Theta_{i+1}$.
+- Repeat the above steps until convergence is achieved.
+
+You will be reconstructing SSVQE's cost function in the assessment, but we have the following snippet to motivate your solution:
+
+## Variational Quantum Deflation (VQD)
+
+[VQD](https://arxiv.org/abs/1805.08138) is an iterative method that extends VQE to obtain the first $k$ eigenvalues of an observable $\hat{H}$ with eigenvalues $\{\lambda_0, \lambda_1,...,\lambda_{N-1}\}$, where $N\geq k$, instead of only the first. For the rest of this section, we will assume, without loss of generality, that $\lambda_0\leq\lambda_1\leq...\leq\lambda_{N-1}$. VQD introduces the notion of a penalty cost to guide the optimization process.
+
+VQD introduces a penalty term, denoted as $\beta$, to balance the contribution of each overlap term to the cost. This penalty term serves to penalize the optimization process if orthogonality is not achieved. We impose this constraint because the eigenstates of an observable, or a Hermitian operator, corresponding to different eigenvalues are always mutually orthogonal, or can be made to be so in the case of degeneracy or repeated eigenvalues. Thus, by enforcing orthogonality with the eigenstate corresponding to $\lambda_0$, we are effectively optimizing over the subspace that corresponds to the rest of the eigenvalues $\{\lambda_1, \lambda_2,..., \lambda_{N-1}\}$. Here, $\lambda_1$ is the lowest eigenvalue from the rest of the eigenvalues and, therefore, the optimal solution of the new problem can be obtained using the variational theorem.
+
+The general idea behind VQD is to use VQE as usual to obtain the lowest eigenvalue $\lambda_0 := C_0(\vec\theta^0) \equiv C_\text{VQE}(\vec\theta^0)$ along with the corresponding (approximate) eigenstate $|\psi(\vec{\theta^0})\rangle$ for some optimal parameter vector $\vec{\theta^0}$. Then, to obtain the next eigenvalue $\lambda_1 > \lambda_0$, instead of minimizing the cost function $C_0(\vec{\theta}) := \langle \psi(\vec{\theta}) | \hat{H} | \psi(\vec{\theta})\rangle$, we optimize:
+
+$$
+C_1(\vec{\theta}) :=
+C_0(\vec{\theta})+ \beta_0 |\langle \psi(\vec{\theta})| \psi(\vec{\theta^0})\rangle  |^2
+$$
+
+The positive value $\beta_0$ should ideally be greater than $\lambda_1-\lambda_0$.
+
+This introduces a new cost function that can be viewed as a constrained problem, where we minimize $C_\text{VQE}(\vec{\theta}) = \langle \psi(\vec{\theta}) | \hat{H} | \psi(\vec{\theta})\rangle$ subject to the constraint that the state must be orthogonal to the previously obtained $|\psi(\vec{\theta^0})\rangle$, with $\beta_0$ acting as a penalty term if the constraint is not satisfied.
+
+Alternatively, this new problem can be interpreted as running VQE on the new observable:
+
+$$
+\hat{H_1} := \hat{H} + \beta_0 |\psi(\vec{\theta^0})\rangle \langle \psi(\vec{\theta^0})|
+\quad \Rightarrow \quad
+C_1(\vec{\theta}) = \langle \psi(\vec{\theta}) | \hat{H_1} | \psi(\vec{\theta})\rangle,
+$$
+
+Assuming that the solution to the new problem is $|\psi(\vec{\theta^1})\rangle$, the expected value of $\hat{H}$ (not $\hat{H_1}$) should be $ \langle \psi(\vec{\theta^1}) | \hat{H} | \psi(\vec{\theta^1})\rangle = \lambda_1$.
+
+To obtain the third eigenvalue $\lambda_2$, the cost function to optimize is:
+
+$$
+C_2(\vec{\theta}) :=
+C_1(\vec{\theta}) + \beta_1 |\langle \psi(\vec{\theta})| \psi(\vec{\theta^1})\rangle  |^2
+$$
+
+where $\beta_1$ is a positive constant large enough to enforce orthogonality of the solution state to both $|\psi(\vec{\theta^0})\rangle$ and $|\psi(\vec{\theta^1})\rangle$. This penalizes states in the search space that do not meet this requirement, effectively restricting the search space. Thus, the optimal solution of the new problem should be the eigenstate corresponding to $\lambda_2$.
+
+Like the previous case, this new problem can also be interpreted as VQE with the observable:
+
+$$
+\hat{H_2} := \hat{H_1} + \beta_1 |\psi(\vec{\theta^1})\rangle \langle \psi(\vec{\theta^1})|
+\quad \Rightarrow \quad
+C_2(\vec{\theta}) = \langle \psi(\vec{\theta}) | \hat{H_2} | \psi(\vec{\theta})\rangle.
+$$
+
+If the solution to this new problem is $|\psi(\vec{\theta^2})\rangle$, the expected value of $\hat{H}$ (not $\hat{H_2}$) should be $ \langle \psi(\vec{\theta^2}) | \hat{H} | \psi(\vec{\theta^2})\rangle = \lambda_2$.
+
+Analogously, to obtain the $k$-th eigenvalue $\lambda_{k-1}$, you would minimize the cost function:
+
+$$
+C_{k-1}(\vec{\theta}) :=
+C_{k-2}(\vec{\theta}) + \beta_{k-2} |\langle \psi(\vec{\theta})| \psi(\vec{\theta^{k-2}})\rangle  |^2,
+$$
+
+Remember that we defined $\vec{\theta^j}$ such that $\langle \psi(\vec{\theta^j}) | \hat{H} | \psi(\vec{\theta^j})\rangle = \lambda_j, \forall j<k$. This problem is equivalent to minimizing $C(\vec{\theta}) = \langle \psi(\vec{\theta}) | \hat{H} | \psi(\vec{\theta})\rangle$ but with the constraint that the state must be orthogonal to $|\psi(\vec{\theta^j})\rangle ; \forall j \in {0, \cdots, k-1}$, thereby restricting the search space to the subspace corresponding to the eigenvalues $\{\lambda_{k-1},\cdots,\lambda_{N-1}\}$.
+
+This problem is equivalent to a VQE with the observable:
+
+$$
+\hat{H}_{k-1} :=
+\hat{H}_{k-2} + \beta_{k-2} |\psi(\vec{\theta^{k-2}})\rangle \langle \psi(\vec{\theta^{k-2}})|
+\quad \Rightarrow \quad
+C_{k-1}(\vec{\theta}) = \langle \psi(\vec{\theta}) | \hat{H}_{k-1} | \psi(\vec{\theta})\rangle,
+$$
+
+As you can see from the process, to obtain the $k$-th eigenvalue, you need the (approximate) eigenstates of the previous $k-1$ eigenvalues, so you would need to run VQE a total of $k$ times. Therefore, VQD's cost function is as follows:
+
+$$
+C_k(\vec{\theta}) =
+\langle \psi(\vec{\theta}) | \hat{H} | \psi(\vec{\theta})\rangle +
+\sum_{j=0}^{k-1}\beta_j |\langle \psi(\vec{\theta})| \psi(\vec{\theta^j})\rangle |^2
+$$
+
+### Theoretical layout
+
+VQD's layout can be summarized as follows:
+
+- Prepare a reference operator $U_R$
+- Apply variational form $U_V(\vec\theta_{i,j})$ to the reference state, creating the following ansatze $U_A(\vec\theta_{i,j})$
+- Bootstrap at $i=0$ if we have a similar problem (typically found via classical simulation or sampling).
+- Evaluate the cost function $C_k(\vec{\theta})$, which involves computing $k$ excited states and an array of $\beta$'s defining the overlap penalty for each overlap term.
+  - Calculate the expectation value for an observable $\langle \psi_{j}(\vec{\theta}) | \hat{H} | \psi_{j}(\vec{\theta}) \rangle$ for each $k$
+  - Calculate the penalty $\sum_{j=0}^{k-1}\beta_j |\langle \psi(\vec{\theta})| \psi(\vec{\theta^j})\rangle |^2$.
+  - The cost function should then return the sum of these two terms
+- Use a classical optimizer to choose the next set of parameters $\Theta_{i+1}$.
+- Repeat this process until convergence is reached.
+
+### Implementation
+
+For this implementation, we'll create a function for an overlap penalty. This penalty will be used in the cost function at each iteration. This process will be repeated for each excited state
+
+First, we'll set up a function that calculates the state fidelity -- a percentage of overlap between two states that we'll use as a penalty for VQD:
+
+It's time to write VQD's cost function. As before when we calculated only the ground state, we will determine the lowest energy state using the Estimator primitive. However, as described above, we will now add a penalty term to ensure orthogonality of higher-energy states. That is, for each new excited state, a penalty is added for any overlap between the current variational state and the lower-energy eigenstates already found.
+
+Note especially that the cost function above refers to the `calculate_overlaps` function, which actually creates a new quantum circuit. If we want to run on real hardware, that new circuit must also be transpiled, hopefully in an optimal way, to run on the backend we select. Note that transpilation has been built in to the `calculate_overlaps` or `cost_func_vqd` functions. Feel free to try modifying the code yourself to build in this additional (and conditional) transpilation - but this will also be done for you in the next lesson.
+
+In this lesson, we will run the VQD algorithm using the Statevector Sampler and Statevector Estimator:
+
+We will introduce an observable to be estimated. In the next lesson we will add some physical context to this, like the excited state of a molecule. It may be helpful to think of this observable as the Hamiltonian of a system that can have excited states, even though this observable has not been chosen to match any particular molecule or atom.
+
+Here, we set the total number of states we wish to calculate (ground state and excited states, k), and the penalties (betas) for overlap between statevectors that should be orthogonal. The consequences of choosing betas to be too high or too low will be explored a bit in the next lesson. For now, we will simply use those provided below. We will start by using all zeros as our parameters. In your own calculations, you may want to use more clever starting parameters based on your knowledge of the system or on previous calculations.
+
+We can now run the calculation:
+
+The values we obtained from the cost function are approximately -6.00, 4.02, and 5.61. The important thing about these results is that the function values are increasing. If we had obtained a first excited state that is lower in energy than our initial, unconstrained calculation of the ground state, that would have indicated an error somewhere in our code.
+
+The values of x are the parameters that yielded a statevector corresponding to each of these costs (energies).
+
+Finally, we note that all three minimizations converged to within the default tolerance of the classical optimizer (here COBYLA). They required 131, 110, and 90 function evaluations, respectively.
+
+## Quantum Sampling Regression (QSR)
+
+One of the main issues with VQE is the multiple calls to a quantum computer that are required to obtain the parameters for each step, for example, $k$, $k-1$, and so on. This is especially problematic when access to quantum devices is queued. While a [`Session`](https://quantum.cloud.ibm.com/docs/ibm-quantum-compute/run-jobs-session) can be used to group multiple iterative calls, an alternative approach is to use sampling. By utilizing more classical resources, we can complete the full optimization process in a single call. This is where [Quantum Sampling Regression](https://arxiv.org/pdf/2012.02338) comes into play. Since access to quantum computers is still a low-offer/high-demand commodity, we find this trade-off to be both possible and convenient for many current studies. This approach harnesses all available classical capabilities while still capturing many of the inner workings and intrinsic properties of quantum computations that do not appear in simulation.
+
+The idea behind QSR is that the cost function $C(\theta) := \langle \psi(\theta) | \hat{H} | \psi(\theta)\rangle$ can be expressed as a Fourier series in the following manner:
+
+$$
+\begin{aligned}
+C(\vec{\theta})
+
+& := \langle \psi(\theta) | \hat{H} | \psi(\theta)\rangle \\[1mm]
+
+& := a_0 + \sum_{k=1}^S[a_k\cos(k\theta)+ b_k\sin(k\theta)] \\[1mm]
+
+\end{aligned}
+$$
+
+Depending on the periodicity and bandwidth of the original function, the set $S$ may be finite or infinite. For the purposes of this discussion, we will assume it is infinite. The next step is to sample the cost function $C(\theta)$ multiple times in order to obtain the Fourier coefficients $\{a_0, a_k, b_k\}_{k=1}^S$. Specifically, since we have $2S+1$ unknowns, we will need to sample the cost function $2S+1$ times.
+
+If we then sample the cost function for $2S+1$ parameter values $\{\theta_1,...,\theta_{2S+1}\}$, we can obtain the following system:
+
+$$
+\begin{pmatrix} 1 & \cos(\theta_1) & \sin(\theta_1) & \cos(2\theta_1) & ... & \sin(S\theta_1) \\
+1 & \cos(\theta_2) & \sin(\theta_2) & \cos(2\theta_2) & \cdots & \sin(S\theta_2)\\
+\vdots & \vdots & \vdots & \vdots & \ddots & \vdots\\
+1 & \cos(\theta_{2S+1}) & \sin(\theta_{2S+1}) & \cos(2\theta_{2S+1}) & \cdots & \sin(S\theta_{2S+1})
+\end{pmatrix} \begin{pmatrix} a_0 \\ a_1 \\ b_1 \\ a_2 \\ \vdots \\ b_S \end{pmatrix} = \begin{pmatrix} C(\theta_1) \\ C(\theta_2) \\ \vdots \\ C(\theta_{2S+1}) \end{pmatrix},
+$$
+
+that we'll rewrite as
+
+$$
+Fa=c.
+$$
+
+In practice, this system is generally not consistent because the cost function values $c$ are not exact. Therefore, it is usually a good idea to normalize them by multiplying them by $F^\dagger$ on the left, which results in:
+
+$$
+F^\dagger Fa = F^\dagger c.
+$$
+
+This new system is always consistent, and its solution is a least-squares solution to the original problem. If we have $k$ parameters instead of just one, and each parameter $\theta^i$ has its own $S_i$ for $i \in {1,...,k}$, then the total number of samples required is:
+
+$$
+T=\prod_{i=1}^k(2S_i+1)\leq \prod_{i=1}^k(2S_{max}+1) = (2S_{max}+1)^n,
+$$
+
+where $S_{\max} = \max_i(S_i)$. Furthermore, adjusting $S_{\max}$ as a tunable parameter (instead of inferring it) opens up new possibilities, such as:
+
+- **Over-sampling** to improve accuracy.
+- **Under-sampling** to boost performance by reducing runtime overhead or eliminating local minima.
+
+### Theoretical layout
+
+QSR's layout can be summarized as follows:
+
+- Prepare reference operators $U_R$.
+  - We'll go from the state $|0\rangle$ to the reference state $|\rho\rangle$
+- Apply the  variational form $U_V(\vec\theta_{i,j})$ to create an ansatz $U_A(\vec\theta_{i,j})$.
+  - Determine the bandwidth associated with each parameter in the ansatz. An upper bound is sufficient.
+- Bootstrap at $i=0$ if we have a similar problem (typically found by classical simulation or sampling).
+- Sample the cost function $C(\vec\theta) := a_0 + \sum_{k=1}^S[a_k\cos(k\theta)+ b_k\sin(k\theta)]$ at least $T$ times.
+  - $T=\prod_{i=1}^k(2S_i+1)\leq \prod_{i=1}^k(2S_{max}+1) = (2S_{max}+1)^n$
+  - Decide whether to over-sample/under-sample to balance speed vs accuracy by adjusting $T$.
+- Compute the Fourier coefficients from the samples (that is, solve the normalized linear system of equations).
+- Solve for the global minimum of the resulting regression function on a classical machine.
+
+## Summary
+
+With this lesson, you learned about multiple variational instances available:
+
+- General layout
+- Introducing weights and penalties to adjust a cost function
+- Exploring under-sampling vs over-sampling to trade-off speed vs accuracy
+
+These ideas can be adapted to form a custom variational algorithm that fits your problem. We encourage you to share your results with the community. The next lesson will explore how to use a variational algorithm to solve an application.

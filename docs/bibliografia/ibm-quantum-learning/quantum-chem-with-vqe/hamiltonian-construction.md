@@ -1,0 +1,154 @@
+# Hamiltonians for Quantum Chemistry
+
+> Fuente: <https://quantum.cloud.ibm.com/learning/en/courses/quantum-chem-with-vqe/hamiltonian-construction>
+
+> Solo las celdas de texto del notebook original; sin código.
+
+
+Let's begin with a brief overview of the role Hamiltonians play in VQE.
+
+## The Hamiltonian in VQE Overview
+
+Dr. Victoria Lipinska walks us through Hamiltonians and how to map them for use in quantum computing.
+
+### References
+
+The following articles are referenced in the above video.
+* [Quantum Algorithms for Fermionic Simulations, Ortiz, et al](https://arxiv.org/pdf/cond-mat/0012334.pdf).
+* [Simulating Chemistry using Quantum Computers, Kassal et al](https://arxiv.org/pdf/1007.2648.pdf).
+* [A Comparison of the Bravyi–Kitaev and Jordan–Wigner Transformations for the Quantum Simulation of Quantum Chemistry, Tranter, et al](https://pubs.acs.org/doi/full/10.1021/acs.jctc.8b00450).
+* [Quantum Chemistry in the Age of Quantum Computing, Cao, et al](https://arxiv.org/pdf/1812.09976.pdf).
+* [Quantum computational chemistry, McArdle, et al](https://arxiv.org/pdf/1808.10402.pdf).
+* [The Bravyi-Kitaev transformation for quantum computation of electronic structure, Seeley, et al](https://arxiv.org/pdf/1208.5986.pdf).
+
+## Preparing Hamiltonians for Quantum Chemistry
+
+A good first step in applying quantum computing to a chemistry problem is defining a Hamiltonian for the system of interest. Here, we will restrict the discussion to quantum chemistry Hamiltonians, as those Hamiltonians require some mapping specific to systems of identical fermions.
+
+As someone working in quantum chemistry, you probably already have your favorite software for modeling molecules, which can generate a Hamiltonian that describes your system of interest. Here, we will use code built solely on PySCF, numpy, and Qiskit. But the process of Hamiltonian preparation transfers to prepackaged solutions as well. The only difference between this approach and other software will be minor syntax differences; some of these are addressed in the "Third-party software" subsection to facilitate integration of existing workflows.
+
+Generating a quantum chemistry Hamiltonian for use on IBM Quantum&reg; QPUs involves the following steps:
+
+1. Define your molecule (geometry, spin, active space, and so on)
+2. Generate the fermionic Hamiltonian (creation and annihilation operators)
+3. Map from the fermionic Hamiltonian to a bosonic operator (in this context, using Pauli operators)
+4. If using third-party software: Handle any syntax mismatches between the generating software and Qiskit
+
+The fermionic Hamiltonian is written in terms of fermionic operators, and in particular, takes into account that electrons are indistinguishable fermions. That means they obey completely different statistics from distinguishable, bosonic qubits. Hence the mapping process.
+
+Those of you already familiar with these processes can likely skip this section.
+
+Goal:
+
+The end goal is to obtain a Hamiltonian of the form:
+
+Or
+
+We'll start by importing some packages:
+
+1. Define your molecule
+
+Here we will specify attributes of the molecule of interest. In this example, we've chosen diatomic hydrogen (because the resulting Hamiltonians are short enough to display).
+
+The Python-based Simulations of Chemistry Framework ([PySCF](https://pyscf.org/)) has a wide collection of electronic structure modules that can be used to, among other things, generate molecular Hamiltonians suitable for quantum computation. The [PySCF Quickstart](https://pyscf.org/quickstart.html) guide is an excellent resource for a full description of all the variables and functionality. We will give only the most cursory overview, since this will already be familiar to many of you. To understand these better, visit [PySCF](https://pyscf.org/).
+Briefly:
+
+__distance__ can be used for diatomic molecules, or simply specify Cartesian coordinates for each atom. Distances are in units of Angstrom.
+
+__gto__ generates gaussian-type orbitals.
+
+__basis__ refers to the functions used to model molecular orbitals. Here 'sto-6g' is a common minimal basis, named for fitting Slater-Type Orbitals using 6 primitive Gaussian orbitals.
+
+__spin__ an integer value indicating the number of unpaired electrons (equal to $2S$). Note that some software uses multiplicity instead ($2S+1$).
+
+__charge__ the charge of the molecule.
+
+__symmetry__ - the point symmetry group of the molecule, either specified with a string or automatically detected by setting "symmetry = True". Here "Dooh" is the appropriate symmetry group for diatomic molecules with two of the same atom species.
+
+Keep in mind that one can describe total energy (which includes nuclear repulsion energy as well as electronic), total electronic orbital energy, or the energy of some subset of electronic orbitals (with the complementary subset frozen). In the specific case of $\text{H}_2$, note the different energies below, and note that the total energy less the nuclear repulsion energy does in fact yield the electronic energy:
+
+2. Generate fermionic Hamiltonian
+
+__scf__ refers to a wide range of self-consistent field methods.
+
+__rhf__ as in __mf__ = scf.RHF(mol) in mf is a solver that uses the Restricted Hartree Fock calculation. The kernel of this (E, below) is the total energy, including nuclear repulsion and molecular orbitals.
+
+__mcscf__ is a multi-configuration self-consistent fields package.
+
+__ao2mo__ is a transformation from atomic orbitals to molecular orbitals.
+
+We also use the following variables:
+
+__ncas__: number of orbitals in the complete active space
+
+__nelecas__: number of electrons in the complete active space
+
+We want a Hamiltonian, and this is often separated into energy of an electronic core (ecore, not involved in minimization), single-electron operators (h1e), and two-electron energies (h2e). These are explicitly extracted below in the last two lines.
+
+These Hamiltonians are currently fermionic (creation and annihilation) operators, applicable to systems of (indistinguishable) fermions, and correspondingly subject to antisymmetry under exchange. This results in different statistics than would apply to a distinguishable or bosonic system. To run calculations on IBM Quantum QPUs, we require a bosonic operator describing the energy. The result of such a mapping is conventionally written in terms of Pauli operators, since they are both Hermitian and unitary. There are several mappings one can use. One of the simplest is the Jordan Wigner transformation.
+
+3. Mapping the Hamiltonian
+
+It should be noted that there are many tools available for mapping a chemical Hamiltonian to one suitable for running on a quantum computer. Here, we implement the Jordan Wigner mapping directly using only PySCF, numpy, and Qiskit. We comment below on syntax considerations for other solutions.
+
+The Cholesky function helps us obtain a low-rank decomposition of the two-electron terms in the Hamiltonian.
+
+The functions `identity` and `creators_destructors` replace creation and annihilation operators in the fermionic Hamiltonian with Pauli operators; `creators_destructors` uses the Jordan-Wigner mapping.
+
+Finally, `build_hamiltonian` uses the `cholesky`, `identity`, and `creators_destructors` functions to create the final Hamiltonian suitable for running on a quantum computer.
+
+Finally, we use `build_hamiltonian` to construct our qubit Hamiltonian from Pauli operators by using the Jordan-Wigner transformation. This also gives us the accuracy of the Cholesky decomposition we used.
+
+This [example molecule notebook](https://ibm.ent.box.com/public/static/59c2kjqefvjy5wy5lct099thr4y0ry8c.zip) shows the setup and Hamiltonians for several molecules of varying complexity; with a little modification, this should enable you to examine most small molecules.
+
+Let's just briefly note two important points to consider when constructing the fermionic operators for a molecule. As the molecule type changes, the symmetry will change. Similarly, the number of orbitals with various symmetries, like the cylindrically symmetric "A1", will change. These changes are evident even with the simple extension to LiH, as seen here:
+
+It is also worth noting that one can quickly lose intuition for the final resulting Hamiltonian. The Hamiltonian for LiH (using the Jordan-Wigner mapper) already consists of 276 terms.
+
+When in doubt regarding symmetries, one can also generate some symmetry information for the molecule by setting `symmetry = True` and `verbose = 4`:
+
+Among other useful information, this returns both `point group symmetry = Coov` and also the number of orbitals in each irreducible representation.
+
+```
+point group symmetry = Coov
+num. orbitals of irrep A1 = 4
+num. orbitals of irrep E1x = 1
+num. orbitals of irrep E1y = 1
+number of shells = 4
+```
+
+This does not necessarily tell you how many orbitals you want included in your active space, but it helps you see what orbitals are present and their symmetries.
+
+Specifying symmetry and orbitals is often helpful, but you can also specify the number of orbitals you want to include. Consider the case of ethene, below. Using `verbose = 4`, we can print the symmetries of the various orbitals:
+
+We obtain:
+
+num. orbitals of irrep Ag = 4
+
+num. orbitals of irrep B2g = 2
+
+num. orbitals of irrep B3g = 1
+
+num. orbitals of irrep B1u = 4
+
+num. orbitals of irrep B2u = 1
+
+num. orbitals of irrep B3u = 2
+
+But rather than specifying all the orbitals by symmetry, we can simply write:
+
+In this approach, we take several orbitals near the filling level (valence and unoccupied). Here, 5 orbitals have been selected for inclusion in the active space (the 6th though 10th).
+
+4. Third-Party Software
+
+There are several software packages developed for quantum chemistry, some offering multiple mappers and tools for restricting active spaces. The steps described above are general and apply to third-party software as well. But this other software may return Hamiltonians in a format that is not accepted by Qiskit. For example, some software returns Hamiltonians of the form:
+
+`H = -0.042 [] + -0.045 [X0 X1 Y2 Y3] + ... + 0.178 [Z0] + ... + 0.176 [Z2 Z3] + -0.243 [Z3]`
+
+Note in particular that the gates are numbered, and identity operators are not shown. This is in contrast to Hamiltonians used in Qiskit, which would write the term `[Z2 Z3]` as `ZZII` (qubits 0 and 1 being acting on by the identity operator, qubits 2 and 3 being acted on by the Z operator, ordered with qubit 0 furthest to the right).
+
+To accommodate any existing workstreams you have, the code block below converts from one syntax to the other. The function `convert_openfermion_to_qiskit` takes as its arguments a Hamiltonian generated in OpenFermion or Tangelo (and already mapped onto Pauli operators using any available mapper), and the number of qubits needed for the molecule.
+
+Further, [this Python notebook](https://ibm.ent.box.com/s/fh3xele1e7k0nrgd1imivvq52hy3wz9c) contains complete sample code for migrating Hamiltonians from other software workflows into Qiskit, including the conversion above.
+
+You should now have an arsenal of tools for obtaining the Hamiltonian you need to perform quantum chemistry calculations on IBM&reg; quantum computers.

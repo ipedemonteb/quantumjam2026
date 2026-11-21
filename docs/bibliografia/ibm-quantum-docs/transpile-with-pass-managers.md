@@ -1,0 +1,77 @@
+# Transpilar con pass managers
+
+> Fuente: <https://quantum.cloud.ibm.com/docs/en/qiskit/transpile-with-pass-managers>
+
+> Documentación de IBM Quantum Platform (repositorio <https://github.com/Qiskit/documentation>). Solo texto, sin las celdas de código.
+
+# Transpile with pass managers
+
+<Accordion>
+<AccordionItem title="Package versions">
+
+The code on this page was developed using the following requirements.
+We recommend using these versions or newer.
+
+```
+qiskit[all]~=2.6.2
+qiskit-ibm-runtime~=0.52.0
+```
+</AccordionItem>
+</Accordion>
+
+The recommended way to transpile a circuit is to create a staged pass manager and then execute its `run` method with the circuit as input. This page explains how to transpile quantum circuits this way.
+
+## What is a (staged) pass manager?
+
+In the context of the Qiskit SDK, transpilation refers to the process of transforming an input circuit into a form that is suitable for execution on a quantum device. Transpilation typically occurs in a sequence of steps called transpiler passes. The circuit is processed by each transpiler pass in sequence, with the output of one pass becoming the input to the next. For example, one pass could go through the circuit and merge all consecutive sequences of single-qubit gates, and then the next pass could synthesize these gates into the basis set of the target device. The transpiler passes included with Qiskit are located in the [qiskit.transpiler.passes](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler_passes) module.
+
+A pass manager is an object that stores a list of transpiler passes and can execute them on a circuit. Create a pass manager by initializing a [`PassManager`](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.transpiler.PassManager) with a list of transpiler passes. To run the transpilation on a circuit, call the [`run`](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.transpiler.PassManager#run) method with a circuit as input.
+
+A staged pass manager is a special kind of pass manager that represents a level of abstraction above that of a normal pass manager. While a normal pass manager is composed of several transpiler passes, a staged pass manager is composed of several *pass managers*. This is a useful abstraction because transpilation typically happens in discrete stages, as described in [Transpiler stages](transpiler-stages), with each stage being represented by a pass manager. Staged pass managers are represented by the [`StagedPassManager`](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.transpiler.StagedPassManager) class. The rest of this page describes how to create and customize (staged) pass managers.
+
+## Generate a preset staged pass manager
+
+To create a preset staged pass manager with reasonable defaults, use the [`generate_preset_pass_manager`](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.transpiler.generate_preset_pass_manager#qiskit.transpiler.generate_preset_pass_manager) function.
+
+<Admonition type="note">
+The  `FakeSherbrooke` mock backend from `qiskit_ibm_runtime` is used in these examples, but you can try it on any Qiskit-compatible real or fake backend.  Your results might be different.
+</Admonition>
+
+To transpile a circuit or list of circuits with a pass manager, pass the circuit or list of circuits to the `run` method. Let's do this on a two-qubit circuit consisting of a Hadamard followed by two adjacent CX gates:
+
+See [Transpilation defaults and configuration options](defaults-and-configuration-options) for a description of the possible arguments to the `generate_preset_pass_manager` function. The arguments to `generate_preset_pass_manager` match the arguments to the [`transpile`](https://quantum.cloud.ibm.com/docs/api/qiskit/compiler#qiskit.compiler.transpile) function.
+
+If the preset pass managers don't fulfill your needs, customize transpilation by creating (staged) pass managers or even transpilation passes. The rest of this page describes how to create pass managers. For instructions on how to create transpilation passes, see [Write your own transpiler pass](custom-transpiler-pass).
+
+## Create your own pass manager
+
+The [qiskit.transpiler.passes](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler_passes) module includes many transpiler passes that can be used to create pass managers. To create a pass manager, initialize a `PassManager` with a list of passes. For example, the following code creates a transpiler pass that merges adjacent two-qubit gates and then synthesizes them into a basis of [$R_y$](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.library.RYGate), [$R_z$](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.library.RZGate), and [$R_{xx}$](https://quantum.cloud.ibm.com/docs/api/qiskit/qiskit.circuit.library.RXXGate),  gates.
+
+To demonstrate this pass manager in action, test it on a two-qubit circuit consisting of a Hadamard followed by two adjacent CX gates:
+
+To run the pass manager on the circuit, call the `run` method.
+
+For a more advanced example that shows how to create a pass manager to implement the error suppression technique known as dynamical decoupling, see [Create a pass manager for dynamical decoupling](dynamical-decoupling-pass-manager).
+
+## Create a staged pass manager
+
+A `StagedPassManager` is a pass manager that is composed of individual stages, where each stage is defined by a `PassManager` instance. You can create a `StagedPassManager` by specifying the desired stages. For example, the following code creates a staged pass manager with two stages, `init` and `translation`. The `translation` stage is defined by the pass manager that was created previously.
+
+There is no limit on the number of stages you can put in a staged pass manager.
+
+Another useful way to create a staged pass manager is to begin with a preset staged pass manager and then swap out some of the stages. For example, the following code generates a preset pass manager with optimization level 3, and then specifies a custom `pre_layout` stage.
+
+The [stage generator functions](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler_preset#stage-generator-functions) might be useful for constructing custom pass managers.
+They generate stages that provide common functionality used in many pass managers.
+For example, [`generate_embed_passmanager`](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler_preset#qiskit.transpiler.preset_passmanagers.generate_embed_passmanager) can be used to generate a stage
+to "embed" a selected initial `Layout` from a layout pass to the specified target device.
+
+## Next steps
+
+<Admonition type="tip" title="Recommendation">
+    - [Write a custom transpiler pass](custom-transpiler-pass).
+    - [Create a pass manager for dynamical decoupling](dynamical-decoupling-pass-manager).
+    - To learn more about the `generate_preset_passmanager` function, see the [Transpilation default settings and configuration options](defaults-and-configuration-options) topic.
+    - Try the [Compare transpiler settings](https://quantum.cloud.ibm.com/docs/qiskit/circuit-transpilation-settings) guide.
+    - Review the [transpiler API documentation](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler).
+</Admonition>

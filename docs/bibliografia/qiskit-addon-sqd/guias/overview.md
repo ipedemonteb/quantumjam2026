@@ -1,0 +1,86 @@
+# Overview
+
+> Fuente: <https://github.com/Qiskit/qiskit-addon-sqd/blob/main/docs/guides/overview.rst>
+
+This page summarizes the guides that are available. All guides are written to focus on specific aspects of the package. Examples of end-to-end workflows can be found in the tutorials hosted on the IBM Quantum Platform.
+
+## Getting started
+
+These simple guides help you to get started quickly with the package.
+
+- {doc}`Quickstart <quickstart>`
+
+## Beyond the basics
+
+These guides provide a deeper explanation of specific concepts and components from this package.
+
+### General
+
+- {doc}`How to choose the subspace dimension from its impact on eigenvalue estimation accuracy <choose_subspace_dimension>`
+- {doc}`Understand this package's support for multi-process and multi-threaded acceleration <hpc_acceleration>`
+
+### Eigensolvers
+
+- {doc}`Scale SQD workflows for Fermionic systems with the Dice solver <integrate_dice_solver>`
+- {doc}`Scale SQD workflows for Fermionic systems with Fulqrum <integrate_fulqrum>`
+- {doc}`Scale SQD workflows for Fermionic systems with the SBD eigensolver <integrate_sbd>`
+
+### Fermionic systems
+
+- {doc}`Leverage trim SQD for improved configuration selection <trim_sqd>`
+- {doc}`Improve an SQD estimate with orbital optimization <optimize_orbitals>`
+- {doc}`Understand open- and closed-shell options and their effect on subspace construction <select_open_closed_shell>`
+- {doc}`Augment the pool of electronic configurations using Fermionic transition operators to improve energy estimations and compute energies of excited states <add_fermionic_excitations_to_configuration_pool>`
+
+### Spin systems
+
+- {doc}`Build a projected Hamiltonian matrix for qubit Hamiltonians <project_pauli_operators_onto_hilbert_subspaces>`
+- {doc}`Benchmark performance of subspace projection for qubit Hamiltonians <benchmark_pauli_projection>`
+
+```{eval-rst}
+.. toctree::
+   :hidden:
+   :caption: Getting started
+
+   self
+   quickstart
+```
+
+```{eval-rst}
+.. toctree::
+   :hidden:
+   :caption: General
+
+   Choose the subspace dimension <choose_subspace_dimension>
+   Multi-process and multi-threaded acceleration <hpc_acceleration>
+```
+
+```{eval-rst}
+.. toctree::
+   :hidden:
+   :caption: Eigensolvers
+
+   Scale workloads with the Dice solver <integrate_dice_solver>
+   Scale workloads with Fulqrum <integrate_fulqrum>
+   Scale workloads with the SBD eigensolver <integrate_sbd>
+```
+
+```{eval-rst}
+.. toctree::
+   :hidden:
+   :caption: Fermionic systems
+
+   Trim SQD <trim_sqd>
+   Orbital optimization <optimize_orbitals>
+   Open- and closed-shell options <select_open_closed_shell>
+   Augment pool of electronic configurations <add_fermionic_excitations_to_configuration_pool>
+```
+
+```{eval-rst}
+.. toctree::
+   :hidden:
+   :caption: Spin systems
+
+   Projected qubit Hamiltonians <project_pauli_operators_onto_hilbert_subspaces>
+   Benchmark qubit Hamiltonian projection <benchmark_pauli_projection>
+```

@@ -1,0 +1,39 @@
+# Introduction
+
+> Fuente: <https://quantum.cloud.ibm.com/learning/en/courses/quantum-chem-with-vqe/introduction>
+
+> Solo las celdas de texto del notebook original; sin código.
+
+
+This course is a focused introduction to the variational quantum eigensolver (VQE), including the application of VQE to chemistry. The course is intended for technical practitioners of quantum computing who are interested in applying quantum computing to chemical, biochemical, or biophysical problems. This course covers important elements of a VQE calculation, including these:
+
+* Hamiltonian
+* Ansatz
+* Classical optimizer
+
+All these elements are brought together to build VQE calculations on IBM Quantum primitives, primarily Estimator. For information about primitives see the [documentation](https://quantum.cloud.ibm.com/docs/qiskit/primitives). In setting up a VQE calculation, we will follow the standard Qiskit patterns framework:
+
+* Map classical inputs to a quantum problem
+* Optimize problem for quantum execution
+* Execute using IBM Quantum primitives
+* Post-process, return result in classical format
+
+Some explanation of the framework will be found throughout this course, but for a complete explanation with examples of Qiskit patterns, see [this documentation](https://quantum.cloud.ibm.com/docs/guides/intro-to-patterns).
+
+We recommend planning to devote approximately 6-10 hours to the completion of this course. The videos and reading are likely to take two hours to complete. The remaining time is for executing and modifying code cells, completing quiz questions, and reading linked documentation.
+
+IBM Quantum&reg; has other upskilling offerings related to VQE. If you are already familiar with the components of VQE and simply wish to put it into practice, see our tutorial: [Ground-state energy estimation of the Heisenberg chain with VQE](https://quantum.cloud.ibm.com/docs/tutorials/spin-chain-vqe).
+
+## Overview of VQE
+
+Let's begin our study of VQE by watching this overview video, presented by the IBM Quantum Americas Lead for Quantum Innovation Centers, Dr. Victoria Lipinska.
+
+You will learn what VQE is, what it can do, and why it is likely to be useful in the near-term over other quantum computing algorithms.
+
+**References**
+
+The following articles are referenced in the above video.
+* [What problem does a variational quantum eigensolver solve](https://pyqml.medium.com/what-problem-does-a-variational-quantum-eigensolver-solve-3b91c47af23b)?
+* [The comprehensive guide to the variational quantum eigensolver](https://pyqml.medium.com/the-comprehensive-guide-to-the-variational-quantum-eigensolver-ee6775e8279e)
+* [Examples of problems solved with VQE](https://medium.com/qiskit/the-variational-quantum-eigensolver-43f7718c2747)
+* [VQE method: a short survey and recent developments, Fedorov, et al](https://materialstheory.springeropen.com/articles/10.1186/s41313-021-00032-6).

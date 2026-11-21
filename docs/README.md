@@ -17,3 +17,7 @@ Consigna de la hackathon (`consigna.md`) y teoría de los workshops de la Quantu
 | [clase-4-extra.md](teoria/clase-4-extra.md) | Material extra clase 4 |
 | [quimica-cuantica-parte-1.md](teoria/quimica-cuantica-parte-1.md) | Química cuántica (parte 1) |
 | [quimica-cuantica-parte-2.md](teoria/quimica-cuantica-parte-2.md) | Química cuántica (parte 2) |
+
+## Bibliografía
+
+Papers, documentación de librerías y cursos en markdown: [bibliografia/](bibliografia/README.md).

@@ -1,0 +1,9 @@
+# Overview
+
+> Fuente: <https://quantum.cloud.ibm.com/learning/en/courses/practical-near-term-qc/index>
+
+This course explores some of the most promising applications of quantum computing, including Hamiltonian simulation, optimization, machine learning, and differential equations. Each application is introduced through its theoretical motivation and then explored through hands-on case studies. We examine how real-world problems are mapped to quantum computers, which quantum techniques they use, and what evidence is needed to assess their potential.
+
+## Exam
+
+The exam and badge for this course are still under development. Lessons are being time-released; the badge and exam should be ready by the time the full course is in place.

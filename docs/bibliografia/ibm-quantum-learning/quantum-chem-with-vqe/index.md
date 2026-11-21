@@ -1,0 +1,33 @@
+# Overview
+
+> Fuente: <https://quantum.cloud.ibm.com/learning/en/courses/quantum-chem-with-vqe/index>
+
+Welcome to **Quantum chemistry with VQE**. The variational quantum eigensolver (VQE) is a quantum algorithm with applications in quantum chemistry and simulation. In this introductory course, you will learn the basic building blocks of VQE, options in its implementation, and a few applications. Content is delivered through a combination of text, video, and code.
+
+Principle topics include:
+
+    - Hamiltonians
+    - Ansaetze
+    - Classical optimizers
+    - Finding ground state energies using Qiskit patterns
+    - Finding bond lengths using Qiskit patterns
+
+This course focuses on applications to quantum chemistry, though many of the same building blocks (ansatz circuits, classical optimizers, and the Qiskit patterns framework) can be applied to a wide range of fields outside quantum chemistry.
+
+## Helpful resources
+
+This introduction to VQE is designed for intermediate learners of quantum computing techniques. No background in VQE is required. Familiarity with Qiskit, and some familiarity with quantum mechanics and related mathematics (such as operators) is assumed. We recommend devoting approximately 6-10 hours to completing this content, depending on one's prior experience.
+
+    - The course on [Basics of Quantum Information](https://quantum.cloud.ibm.com/learning/courses/basics-of-quantum-information/index) may be helpful in providing background and fundamentals of quantum information and computing.
+
+## Exam
+
+To earn your badge for Quantum Chemistry with VQE, take the exam at IBM&reg; Training. This exam is intended to be taken after reading the lessons in this course. After you pass the exam, you will be notified by Credly that you have earned a badge.
+
+[Exam](https://quantum.cloud.ibm.com/learning/courses/quantum-chem-with-vqe/exam)
+
+## Awarded Badge
+
+### Credly
+
+NOTICE: IBM leverages the services of Credly, a third-party data processor authorized by IBM and located in the United States, to assist in the administration of the IBM Digital Badge program. In order to issue you an IBM Digital Badge, your personal information (name, email address, and badge earned) will be shared with Credly. You will receive an email notification from Credly with instructions for claiming the badge. Your personal information is used to issue your badge and for program reporting and operational purposes. IBM may share the personal information collected with IBM subsidiaries and third parties globally. It will be handled in a manner consistent with IBM privacy practices. The IBM Privacy Statement can be viewed [here](https://www.ibm.com/privacy/us/). IBM employees can view the IBM Internal Privacy Statement [here](https://w3.ibm.com/w3publisher/w3-privacy-notice).
