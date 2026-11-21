@@ -1,0 +1,20 @@
+# Dependencias de notebooks/vqe_h4.ipynb — Quantum Jam 2026
+# Versiones fijadas a las usadas para validar el notebook (ver celda de instalación).
+
+# Stack cuántico
+qiskit==2.6.2
+qiskit-aer==0.18.4
+qiskit-nature==0.8.0
+
+# Química clásica (Hartree-Fock, CCSD, FCI)
+pyscf==2.15.1
+
+# Análisis numérico y gráficos
+numpy
+scipy
+pandas
+matplotlib
+
+# Para abrir y correr el notebook
+jupyterlab
+ipykernel
