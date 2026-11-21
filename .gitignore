@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+.python-version
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Secretos / credenciales (IBM Quantum token, etc.)
+.env
+.env.*
+!.env.example
+qiskit-ibm.json
+.qiskit/
+
+# Claude Code (config local personal)
+.claude/settings.local.json
+
+# Resultados pesados / temporales
+*.log
+tmp/
+outputs/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
