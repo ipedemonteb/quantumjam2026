@@ -168,6 +168,19 @@ un modelo de ruido realista + técnicas de mitigación de errores, reducir el pr
 otro mapeo (parity), comparar formalmente UCCSD contra un ansatz genérico con más presupuesto, o
 probar SQD (el algoritmo alternativo que la consigna permite como extra).
 
+**¿No sería más rápido correr esto en una computadora cuántica real?**
+No — sería mucho **más lento**, y conviene tenerlo claro antes de que lo pregunten. Nuestro
+Hamiltoniano tiene 185 términos de Pauli, agrupados en 46 grupos que se pueden medir juntos. La
+búsqueda de parámetros hace del orden de **decenas de miles de evaluaciones de energía**; en hardware
+real, cada evaluación son 46 circuitos distintos, no uno — así que reemplazar toda la optimización por
+hardware real tomaría **entre 8 y 32 días** en el escenario más optimista, no minutos. El cuello de
+botella no es la física del qubit (eso tarda microsegundos): es cuántas veces hay que preguntarle algo
+a la máquina. Por eso la estrategia que exige la propia consigna (buscar los parámetros sin ruido, y
+medir el resultado final con shots) no es un atajo cualquiera — es, a este tamaño de problema (8
+qubits), la única forma práctica de hacerlo. Si solo lleváramos a hardware real la medición final (ya
+con los parámetros encontrados), son ~500 circuitos: unos 4 a 17 minutos de ejecución, más la cola de
+turno de la máquina real.
+
 **¿Qué fue lo más difícil?**
 Doble respuesta honesta: (1) que el circuito "ingenuo" no convergía — hubo que usar uno con química
 adentro; (2) que al principio la búsqueda de parámetros era carísima en tiempo, por un detalle técnico
